@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listing Marketing Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;padding:1.5rem;color:#1a1a1a}
+.setup{padding:1.5rem;background:#fff;border-radius:12px;border:1px solid #e0e0e0;margin-bottom:1rem;max-width:700px;margin-left:auto;margin-right:auto}
+.setup h2{font-size:16px;font-weight:600;margin-bottom:1rem}
+.row{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px}
+.field label{font-size:12px;color:#666}
+.field input{height:36px;border-radius:8px;border:1px solid #ccc;background:#fff;color:#1a1a1a;padding:0 10px;font-size:14px}
+.field input:focus{outline:none;border-color:#888}
+.btn-start{background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:0 20px;height:36px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-start:hover{opacity:0.85}
+.tracker{display:none;max-width:700px;margin:0 auto}
+.deal-header{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.deal-addr{font-size:16px;font-weight:600;color:#1a1a1a}
+.deal-sub{font-size:12px;color:#666;margin-top:2px}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{background:#f5f5f5;border-radius:8px;padding:8px 14px;text-align:center}
+.stat-n{font-size:20px;font-weight:600;color:#1a1a1a}
+.stat-l{font-size:11px;color:#666;margin-top:1px}
+.phase-block{margin-bottom:1rem}
+.phase-head{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:8px;margin-bottom:6px;user-select:none}
+.phase-head .ph-title{font-size:13px;font-weight:600;flex:1}
+.phase-head .ph-count{font-size:12px;opacity:0.8}
+/* Phase colors */
+.ph-ondeck{background:#E8F4FD;color:#1a4f7a}
+.ph-week1{background:#E1F5EE;color:#085041}
+.ph-week2{background:#EEEDFE;color:#3C3489}
+.ph-week3{background:#FAEEDA;color:#633806}
+.ph-week4{background:#FAECE7;color:#712B13}
+.ph-week5{background:#F0EEF8;color:#4a3580}
+.ph-week6{background:#E6F7EC;color:#1a5c35}
+.ph-week7{background:#FEF3E2;color:#7a4a00}
+.ph-week8{background:#EDE8FD;color:#4B2EA0}
+.ph-week9{background:#FDE8E8;color:#8B1A1A}
+.ph-week10{background:#E8F8F5;color:#0d6655}
+.ph-week11{background:#FEF9E7;color:#7d6608}
+.ph-week12{background:#F4ECF7;color:#6c3483}
+.ph-week13{background:#E8F8FD;color:#1a6080}
+.ph-week14{background:#FEF0F0;color:#922b21}
+.ph-week15{background:#E8FDF5;color:#0e6655}
+.ph-week16{background:#F9F0FF;color:#6c3483}
+.ph-week17{background:#FFFDE7;color:#7d6608}
+.ph-week18{background:#E8F4F8;color:#1a4f7a}
+.ph-week19{background:#F0FFF4;color:#1a5c35}
+.ph-week20{background:#FFF5F5;color:#922b21}
+.ph-week21{background:#F5F0FF;color:#4a3580}
+.ph-week22{background:#F0F8FF;color:#1a4f7a}
+.ph-week23{background:#FFF8F0;color:#7a4a00}
+.ph-week24{background:#F0FFF8;color:#085041}
+.step-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:6px;overflow:hidden}
+.step-head{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer}
+.step-num{font-size:11px;font-weight:600;color:#999;min-width:20px}
+.step-title{font-size:13px;font-weight:500;color:#1a1a1a;flex:1}
+.due-badge{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-weight:500}
+.due-ok{background:#EAF3DE;color:#27500A}
+.due-soon{background:#FAEEDA;color:#633806}
+.due-urgent{background:#FCEBEB;color:#791F1F}
+.due-done{background:#E1F5EE;color:#085041}
+.due-upcoming{background:#E8F4FD;color:#1a4f7a}
+.step-body{padding:0 12px 12px 12px;border-top:1px solid #f0f0f0}
+.items-list{margin-top:10px}
+.item-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f5f5f5}
+.item-row:last-child{border-bottom:none}
+.item-row:hover .item-actions{opacity:1}
+.item-cb{width:16px;height:16px;cursor:pointer;flex-shrink:0;accent-color:#1D9E75}
+.item-label{font-size:12px;color:#444;line-height:1.5;flex:1}
+.item-label.done{text-decoration:line-through;color:#bbb}
+.item-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.15s;flex-shrink:0}
+.item-action-btn{width:22px;height:22px;border:1px solid #ddd;border-radius:5px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;padding:0}
+.item-action-btn:hover{background:#f5f5f5;border-color:#bbb;color:#333}
+.item-action-btn.del:hover{background:#fff0f0;border-color:#e07070;color:#c0392b}
+.item-edit-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f5f5f5}
+.item-edit-row:last-child{border-bottom:none}
+.item-edit-input{flex:1;font-size:12px;border:1px solid #aaa;border-radius:6px;padding:3px 8px;height:26px;color:#1a1a1a}
+.item-edit-input:focus{outline:none;border-color:#555}
+.item-edit-save{background:#1a1a1a;color:#fff;border:none;border-radius:6px;padding:0 8px;height:26px;font-size:11px;cursor:pointer}
+.item-edit-cancel{background:#fff;color:#666;border:1px solid #ccc;border-radius:6px;padding:0 8px;height:26px;font-size:11px;cursor:pointer}
+.add-task-row{display:flex;align-items:center;gap:6px;padding:8px 0 0 0;margin-top:4px;border-top:1px solid #ececec}
+.add-task-input{flex:1;font-size:12px;border:1px solid #ccc;border-radius:6px;padding:3px 8px;height:28px;color:#1a1a1a}
+.add-task-input:focus{outline:none;border-color:#888}
+.add-task-btn{background:#1a1a1a;color:#fff;border:none;border-radius:6px;padding:0 10px;height:28px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.add-task-btn:hover{opacity:0.85}
+.step-footer{display:flex;align-items:center;gap:8px;margin-top:10px}
+.mark-done-btn{font-size:12px;border:1px solid #ccc;border-radius:8px;background:#fff;color:#1a1a1a;padding:4px 10px;cursor:pointer;height:28px}
+.mark-done-btn:hover{background:#f5f5f5}
+.mark-done-btn.completed{background:#EAF3DE;color:#27500A;border-color:#97C459}
+.reset-btn{font-size:12px;border:1px solid #e0e0e0;border-radius:8px;background:transparent;color:#999;padding:4px 10px;cursor:pointer;height:28px;margin-left:auto}
+.reset-btn:hover{color:#666}
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-btn{font-size:12px;border:1px solid #ccc;border-radius:20px;background:#fff;color:#666;padding:4px 12px;cursor:pointer}
+.filter-btn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:1.5rem;color:#1a1a1a}
+/* Week indicator strip */
+.current-week-banner{background:#1a1a1a;color:#fff;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;text-align:center;font-weight:500}
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:1.5rem;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,0.18)}
+.modal h3{font-size:15px;font-weight:600;margin-bottom:12px}
+.modal p{font-size:13px;color:#555;margin-bottom:16px}
+.modal-input{width:100%;font-size:13px;border:1px solid #ccc;border-radius:8px;padding:8px 10px;margin-bottom:14px;color:#1a1a1a}
+.modal-input:focus{outline:none;border-color:#888}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+.modal-btn{border:none;border-radius:8px;padding:6px 16px;font-size:13px;font-weight:500;cursor:pointer}
+.modal-btn.primary{background:#1a1a1a;color:#fff}
+.modal-btn.danger{background:#c0392b;color:#fff}
+.modal-btn.secondary{background:#f0f0f0;color:#333}
+.modal-btn:hover{opacity:0.88}
+</style>
+</head>
+<body>
+
+<h1>Listing Marketing Tracker</h1>
+
+<div class="setup" id="setup-panel">
+  <h2>New listing setup</h2>
+  <div class="row">
+    <div class="field">
+      <label>Property address</label>
+      <input type="text" id="inp-addr" placeholder="123 Main St, Louisville KY" />
+    </div>
+    <div class="field" style="max-width:180px">
+      <label>Listing date</label>
+      <input type="date" id="inp-date" />
+    </div>
+  </div>
+  <button class="btn-start" onclick="startDeal()">Start listing tracker</button>
+</div>
+
+<div class="tracker" id="tracker-panel">
+  <div class="deal-header">
+    <div>
+      <div class="deal-addr" id="disp-addr"></div>
+      <div class="deal-sub" id="disp-sub"></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="st-done">0</div><div class="stat-l">Completed</div></div>
+      <div class="stat"><div class="stat-n" id="st-left">0</div><div class="stat-l">Remaining</div></div>
+      <div class="stat"><div class="stat-n" id="st-urgent">0</div><div class="stat-l">This Week</div></div>
+    </div>
+    <button class="reset-btn" onclick="resetDeal()">New listing</button>
+  </div>
+
+  <div id="current-week-banner" class="current-week-banner"></div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All weeks</button>
+    <button class="filter-btn" onclick="setFilter('current',this)">This week</button>
+    <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">Completed</button>
+  </div>
+
+  <div id="phases-container"></div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <h3>Delete task?</h3>
+    <p id="delete-modal-text"></p>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="modal-btn danger" id="delete-confirm-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Replace task modal -->
+<div class="modal-overlay" id="replace-modal">
+  <div class="modal">
+    <h3>Replace task</h3>
+    <p id="replace-modal-old" style="font-size:12px;color:#888;margin-bottom:10px;font-style:italic"></p>
+    <input class="modal-input" id="replace-modal-input" placeholder="New task text..." />
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="closeModal('replace-modal')">Cancel</button>
+      <button class="modal-btn primary" id="replace-confirm-btn">Replace</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+// deadlineStart / deadlineEnd = days from listing date for that week window
+const STEPS_DEFAULT = [
+  {phase:"ondeck", phaseLabel:"On Deck", steps:[
+    {n:1, title:"On Deck Actions", deadlineStart:0, deadlineEnd:0, items:[
+      "Order Photos (and Drone if applicable)",
+      "Upload Docs to brokerage compliance",
+      "Design & Print Property Flyer",
+      "Design & Mail 200 New Listing PCs",
+      "Build Out MLS Listing"
+    ]}
+  ]},
+  {phase:"week1", phaseLabel:"Week 1", steps:[
+    {n:2, title:"Week 1 Actions", deadlineStart:1, deadlineEnd:7, items:[
+      "Run IntelliAgent 3 Day Social Boost",
+      "Website Lead Page",
+      "Create Bitly Links",
+      "Create FB Marketplace Listings",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Post to Craigslist",
+      "Post to 10 Local Facebook Groups",
+      "Set Up All Automated Reporting"
+    ]}
+  ]},
+  {phase:"week2", phaseLabel:"Week 2", steps:[
+    {n:3, title:"Week 2 Actions", deadlineStart:8, deadlineEnd:14, items:[
+      "Re-Post to Craigslist",
+      "Renew FB Marketplace Listings",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week3", phaseLabel:"Week 3", steps:[
+    {n:4, title:"Week 3 Actions", deadlineStart:15, deadlineEnd:21, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week4", phaseLabel:"Week 4", steps:[
+    {n:5, title:"Week 4 Actions", deadlineStart:22, deadlineEnd:28, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week5", phaseLabel:"Week 5", steps:[
+    {n:6, title:"Week 5 Actions", deadlineStart:29, deadlineEnd:35, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week6", phaseLabel:"Week 6", steps:[
+    {n:7, title:"Week 6 Actions", deadlineStart:36, deadlineEnd:42, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week7", phaseLabel:"Week 7", steps:[
+    {n:8, title:"Week 7 Actions", deadlineStart:43, deadlineEnd:49, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week8", phaseLabel:"Week 8", steps:[
+    {n:9, title:"Week 8 Actions", deadlineStart:50, deadlineEnd:56, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week9", phaseLabel:"Week 9", steps:[
+    {n:10, title:"Week 9 Actions", deadlineStart:57, deadlineEnd:63, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week10", phaseLabel:"Week 10", steps:[
+    {n:11, title:"Week 10 Actions", deadlineStart:64, deadlineEnd:70, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week11", phaseLabel:"Week 11", steps:[
+    {n:12, title:"Week 11 Actions", deadlineStart:71, deadlineEnd:77, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week12", phaseLabel:"Week 12", steps:[
+    {n:13, title:"Week 12 Actions", deadlineStart:78, deadlineEnd:84, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week13", phaseLabel:"Week 13", steps:[
+    {n:14, title:"Week 13 Actions", deadlineStart:85, deadlineEnd:91, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week14", phaseLabel:"Week 14", steps:[
+    {n:15, title:"Week 14 Actions", deadlineStart:92, deadlineEnd:98, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week15", phaseLabel:"Week 15", steps:[
+    {n:16, title:"Week 15 Actions", deadlineStart:99, deadlineEnd:105, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week16", phaseLabel:"Week 16", steps:[
+    {n:17, title:"Week 16 Actions", deadlineStart:106, deadlineEnd:112, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week17", phaseLabel:"Week 17", steps:[
+    {n:18, title:"Week 17 Actions", deadlineStart:113, deadlineEnd:119, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week18", phaseLabel:"Week 18", steps:[
+    {n:19, title:"Week 18 Actions", deadlineStart:120, deadlineEnd:126, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week19", phaseLabel:"Week 19", steps:[
+    {n:20, title:"Week 19 Actions", deadlineStart:127, deadlineEnd:133, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week20", phaseLabel:"Week 20", steps:[
+    {n:21, title:"Week 20 Actions", deadlineStart:134, deadlineEnd:140, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week21", phaseLabel:"Week 21", steps:[
+    {n:22, title:"Week 21 Actions", deadlineStart:141, deadlineEnd:147, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week22", phaseLabel:"Week 22", steps:[
+    {n:23, title:"Week 22 Actions", deadlineStart:148, deadlineEnd:154, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week23", phaseLabel:"Week 23", steps:[
+    {n:24, title:"Week 23 Actions", deadlineStart:155, deadlineEnd:161, items:[
+      "Re-Post to Craigslist",
+      "Realtor reverse prospecting",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]},
+  {phase:"week24", phaseLabel:"Week 24", steps:[
+    {n:25, title:"Week 24 Actions", deadlineStart:162, deadlineEnd:168, items:[
+      "Price Reduction",
+      "Realtor reverse prospecting",
+      "Lender Reverse Prospecting",
+      "Re-Post to Craigslist",
+      "Neighborhood call - price adjustment",
+      "Price Change email to personal database",
+      "Price Change email to showing agents",
+      "Post to 10 Local Facebook Groups"
+    ]}
+  ]}
+];
+
+let STEPS = JSON.parse(JSON.stringify(STEPS_DEFAULT));
+let listingDate = null;
+let state = {};
+let stepStatus = {};
+let currentFilter = 'all';
+let editingItem = null;
+
+// ── Deal lifecycle ─────────────────────────────────────────────────────────────
+function startDeal(){
+  const addr = document.getElementById('inp-addr').value.trim();
+  const dateVal = document.getElementById('inp-date').value;
+  if(!addr || !dateVal){alert('Please enter address and listing date');return;}
+  listingDate = new Date(dateVal + 'T00:00:00');
+  state = {};
+  stepStatus = {};
+  STEPS = JSON.parse(JSON.stringify(STEPS_DEFAULT));
+  document.getElementById('disp-addr').textContent = addr;
+  document.getElementById('disp-sub').textContent = 'Listed: ' + listingDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('setup-panel').style.display='none';
+  document.getElementById('tracker-panel').style.display='block';
+  renderAll();
+}
+
+function resetDeal(){
+  document.getElementById('setup-panel').style.display='block';
+  document.getElementById('tracker-panel').style.display='none';
+  document.getElementById('inp-addr').value='';
+}
+
+// ── Week/due helpers ──────────────────────────────────────────────────────────
+function getDaysOnMarket(){
+  const now = new Date();
+  return Math.floor((now - listingDate) / 86400000);
+}
+
+function getCurrentWeekNum(){
+  const dom = getDaysOnMarket();
+  if(dom < 1) return 0; // on deck
+  return Math.ceil(dom / 7);
+}
+
+function getDueInfo(step){
+  if(stepStatus[step.n]==='done') return {label:'Done', cls:'due-done'};
+  const dom = getDaysOnMarket();
+
+  // On Deck special case
+  if(step.deadlineStart === 0 && step.deadlineEnd === 0){
+    if(dom < 0) return {label:'Upcoming', cls:'due-upcoming'};
+    if(dom === 0) return {label:'Do today', cls:'due-urgent'};
+    return {label:'Overdue', cls:'due-urgent'};
+  }
+
+  if(dom < step.deadlineStart){
+    // Upcoming — how many days until window opens
+    const daysUntil = step.deadlineStart - dom;
+    if(daysUntil <= 3) return {label:'In '+daysUntil+'d', cls:'due-soon'};
+    return {label:'Week '+ Math.ceil(step.deadlineStart/7), cls:'due-upcoming'};
+  }
+  if(dom >= step.deadlineStart && dom <= step.deadlineEnd){
+    const daysLeft = step.deadlineEnd - dom;
+    if(daysLeft === 0) return {label:'Last day', cls:'due-urgent'};
+    if(daysLeft <= 2) return {label:daysLeft+'d left', cls:'due-urgent'};
+    return {label:'This week', cls:'due-ok'};
+  }
+  // Past window
+  return {label:'Overdue', cls:'due-urgent'};
+}
+
+function isCurrentWeek(step){
+  if(stepStatus[step.n]==='done') return false;
+  const dom = getDaysOnMarket();
+  if(step.deadlineStart === 0 && step.deadlineEnd === 0) return dom >= 0 && dom <= 1;
+  return dom >= step.deadlineStart && dom <= step.deadlineEnd;
+}
+
+// ── Checkbox ──────────────────────────────────────────────────────────────────
+function toggleItem(stepN, idx){
+  state[stepN+'-'+idx] = !state[stepN+'-'+idx];
+  renderAll();
+}
+
+function markDone(stepN){
+  stepStatus[stepN] = stepStatus[stepN]==='done' ? '' : 'done';
+  renderAll();
+}
+
+function setFilter(f, btn){
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll(){
+  const container = document.getElementById('phases-container');
+  let totalDone=0, totalLeft=0, totalThisWeek=0;
+  let allSteps = [];
+  STEPS.forEach(ph=>ph.steps.forEach(s=>allSteps.push(s)));
+
+  allSteps.forEach(s=>{
+    if(stepStatus[s.n]==='done') totalDone++;
+    else {
+      totalLeft++;
+      if(isCurrentWeek(s)) totalThisWeek++;
+    }
+  });
+  document.getElementById('st-done').textContent=totalDone;
+  document.getElementById('st-left').textContent=totalLeft;
+  document.getElementById('st-urgent').textContent=totalThisWeek;
+
+  // Current week banner
+  const dom = getDaysOnMarket();
+  const weekNum = getCurrentWeekNum();
+  const banner = document.getElementById('current-week-banner');
+  if(dom < 0){
+    banner.textContent = 'Listing goes live in '+Math.abs(dom)+' day(s) — complete On Deck tasks now';
+  } else if(dom === 0){
+    banner.textContent = '🚀 Listing day! Complete On Deck tasks and kick off Week 1';
+  } else {
+    banner.textContent = '📅 Day '+dom+' on market · Currently in Week '+weekNum;
+  }
+
+  let html='';
+  STEPS.forEach(ph=>{
+    const phSteps = ph.steps.filter(s=>{
+      if(currentFilter==='done') return stepStatus[s.n]==='done';
+      if(currentFilter==='pending') return stepStatus[s.n]!=='done';
+      if(currentFilter==='current') return isCurrentWeek(s) && stepStatus[s.n]!=='done';
+      return true;
+    });
+    if(phSteps.length===0) return;
+
+    const phaseDone = ph.steps.filter(s=>stepStatus[s.n]==='done').length;
+    html+=`<div class="phase-block">
+      <div class="phase-head ph-${ph.phase}">
+        <span class="ph-title">${ph.phaseLabel}</span>
+        <span class="ph-count">${phaseDone}/${ph.steps.length}</span>
+      </div>`;
+
+    phSteps.forEach(s=>{
+      const di = getDueInfo(s);
+      const isDone = stepStatus[s.n]==='done';
+      const itemsDone = s.items.filter((_,i)=>state[s.n+'-'+i]).length;
+      html+=`<div class="step-card">
+        <div class="step-head" onclick="toggleStep(${s.n})">
+          <span class="step-title">${escHtml(s.title)}</span>
+          <span style="font-size:11px;color:#999;margin-right:8px">${itemsDone}/${s.items.length}</span>
+          <span class="due-badge ${di.cls}">${di.label}</span>
+        </div>
+        <div class="step-body" id="step-body-${s.n}" style="display:none">
+          <div class="items-list" id="items-list-${s.n}">`;
+
+      s.items.forEach((item,i)=>{
+        const key = s.n+'-'+i;
+        const checked = state[key] ? 'checked' : '';
+        const doneClass = state[key] ? ' done' : '';
+        const isEditing = editingItem && editingItem.stepN===s.n && editingItem.idx===i;
+
+        if(isEditing){
+          html+=`<div class="item-edit-row">
+            <input class="item-edit-input" id="edit-input-${s.n}-${i}" value="${escAttr(item)}" onkeydown="editKeydown(event,${s.n},${i})">
+            <button class="item-edit-save" onclick="saveEdit(${s.n},${i})">Save</button>
+            <button class="item-edit-cancel" onclick="cancelEdit()">Cancel</button>
+          </div>`;
+        } else {
+          html+=`<div class="item-row">
+            <input type="checkbox" class="item-cb" ${checked} onchange="toggleItem(${s.n},${i})">
+            <span class="item-label${doneClass}">${escHtml(item)}</span>
+            <div class="item-actions">
+              <button class="item-action-btn" title="Edit task" onclick="startEdit(${s.n},${i})">✏️</button>
+              <button class="item-action-btn" title="Replace task" onclick="openReplaceModal(${s.n},${i})">🔄</button>
+              <button class="item-action-btn del" title="Delete task" onclick="openDeleteModal(${s.n},${i})">🗑</button>
+            </div>
+          </div>`;
+        }
+      });
+
+      html+=`</div>
+          <div class="add-task-row">
+            <input class="add-task-input" id="add-input-${s.n}" placeholder="Add a new task…" onkeydown="addTaskKeydown(event,${s.n})">
+            <button class="add-task-btn" onclick="addTask(${s.n})">+ Add task</button>
+          </div>
+          <div class="step-footer">
+            <button class="mark-done-btn${isDone?' completed':''}" onclick="markDone(${s.n})">${isDone?'✓ Completed':'Mark week done'}</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  container.innerHTML=html;
+
+  if(editingItem){
+    const el = document.getElementById(`edit-input-${editingItem.stepN}-${editingItem.idx}`);
+    if(el){ el.focus(); el.select(); }
+  }
+}
+
+function toggleStep(n){
+  const body = document.getElementById('step-body-'+n);
+  if(body) body.style.display = body.style.display==='none' ? 'block' : 'none';
+}
+
+// ── Inline edit ───────────────────────────────────────────────────────────────
+function startEdit(stepN, idx){
+  editingItem = {stepN, idx};
+  renderAll();
+  const b = document.getElementById('step-body-'+stepN);
+  if(b) b.style.display='block';
+}
+
+function saveEdit(stepN, idx){
+  const input = document.getElementById(`edit-input-${stepN}-${idx}`);
+  const val = input ? input.value.trim() : '';
+  if(!val){ alert('Task cannot be empty.'); return; }
+  const step = findStep(stepN);
+  if(step) step.items[idx] = val;
+  editingItem = null;
+  renderAll();
+  const b = document.getElementById('step-body-'+stepN);
+  if(b) b.style.display='block';
+}
+
+function cancelEdit(){
+  const sn = editingItem ? editingItem.stepN : null;
+  editingItem = null;
+  renderAll();
+  if(sn){ const b = document.getElementById('step-body-'+sn); if(b) b.style.display='block'; }
+}
+
+function editKeydown(e, stepN, idx){
+  if(e.key==='Enter'){ e.preventDefault(); saveEdit(stepN,idx); }
+  if(e.key==='Escape'){ e.preventDefault(); cancelEdit(); }
+}
+
+// ── Add task ──────────────────────────────────────────────────────────────────
+function addTask(stepN){
+  const input = document.getElementById('add-input-'+stepN);
+  const val = input ? input.value.trim() : '';
+  if(!val) return;
+  const step = findStep(stepN);
+  if(step) step.items.push(val);
+  renderAll();
+  const b = document.getElementById('step-body-'+stepN);
+  if(b) b.style.display='block';
+  const ni = document.getElementById('add-input-'+stepN);
+  if(ni) ni.focus();
+}
+
+function addTaskKeydown(e, stepN){
+  if(e.key==='Enter'){ e.preventDefault(); addTask(stepN); }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+let pendingDelete = null;
+
+function openDeleteModal(stepN, idx){
+  const step = findStep(stepN);
+  const text = step ? step.items[idx] : '';
+  document.getElementById('delete-modal-text').textContent = `Delete: "${text}"`;
+  pendingDelete = {stepN, idx};
+  document.getElementById('delete-confirm-btn').onclick = confirmDelete;
+  openModal('delete-modal');
+}
+
+function confirmDelete(){
+  if(!pendingDelete) return;
+  const {stepN, idx} = pendingDelete;
+  const step = findStep(stepN);
+  if(step){
+    step.items.splice(idx, 1);
+    const newState = {};
+    Object.keys(state).forEach(k=>{
+      const [sn, si] = k.split('-').map(Number);
+      if(sn !== stepN){ newState[k] = state[k]; return; }
+      if(si < idx){ newState[k] = state[k]; }
+      else if(si > idx){ newState[`${sn}-${si-1}`] = state[k]; }
+    });
+    state = newState;
+  }
+  pendingDelete = null;
+  closeModal('delete-modal');
+  renderAll();
+  const b = document.getElementById('step-body-'+stepN);
+  if(b) b.style.display='block';
+}
+
+// ── Replace ───────────────────────────────────────────────────────────────────
+let pendingReplace = null;
+
+function openReplaceModal(stepN, idx){
+  const step = findStep(stepN);
+  const text = step ? step.items[idx] : '';
+  document.getElementById('replace-modal-old').textContent = `Current: "${text}"`;
+  document.getElementById('replace-modal-input').value = '';
+  pendingReplace = {stepN, idx};
+  document.getElementById('replace-confirm-btn').onclick = confirmReplace;
+  openModal('replace-modal');
+  setTimeout(()=>document.getElementById('replace-modal-input').focus(), 80);
+}
+
+function confirmReplace(){
+  if(!pendingReplace) return;
+  const val = document.getElementById('replace-modal-input').value.trim();
+  if(!val){ alert('Please enter replacement text.'); return; }
+  const {stepN, idx} = pendingReplace;
+  const step = findStep(stepN);
+  if(step) step.items[idx] = val;
+  pendingReplace = null;
+  closeModal('replace-modal');
+  renderAll();
+  const b = document.getElementById('step-body-'+stepN);
+  if(b) b.style.display='block';
+}
+
+document.getElementById('replace-modal-input').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); confirmReplace(); }
+  if(e.key==='Escape'){ closeModal('replace-modal'); }
+});
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function findStep(stepN){
+  for(const ph of STEPS){
+    const s = ph.steps.find(s=>s.n===stepN);
+    if(s) return s;
+  }
+  return null;
+}
+function escHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str){
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+const today = new Date();
+document.getElementById('inp-date').value = today.toISOString().split('T')[0];
+</script>
+</body>
+</html>
