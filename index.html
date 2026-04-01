@@ -99,6 +99,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:1.5rem;color:#1a1a1a}
 /* Week indicator strip */
 .current-week-banner{background:#1a1a1a;color:#fff;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;text-align:center;font-weight:500}
+
+/* Saved properties */
+.saved-section{max-width:700px;margin:0 auto 1rem;background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1rem 1.25rem}
+.saved-section h3{font-size:13px;font-weight:600;color:#1a1a1a;margin-bottom:10px}
+.saved-list{display:flex;flex-direction:column;gap:6px}
+.saved-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f8f8f8;border-radius:8px;border:1px solid #e8e8e8;cursor:pointer;transition:border-color .15s}
+.saved-item:hover{border-color:#888}
+.saved-item-addr{font-size:13px;font-weight:500;color:#1a1a1a;flex:1}
+.saved-item-meta{font-size:11px;color:#888}
+.saved-item-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px}
+.saved-item-del:hover{color:#c0392b}
+.saved-progress{font-size:11px;color:#1D9E75;font-weight:600;min-width:40px;text-align:right}
+
+/* Top action bar */
+.top-action-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.btn-download{background:#fff;color:#1a1a1a;border:1px solid #ccc;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:5px}
+.btn-download:hover{background:#f5f5f5}
+.btn-save-progress{background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer}
+.btn-save-progress:hover{opacity:0.88}
+.save-indicator{font-size:11px;color:#1D9E75;font-weight:500}
 /* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:100;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
@@ -118,6 +138,12 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:1.5rem;color:#
 <body>
 
 <h1>Listing Marketing Tracker</h1>
+
+<!-- SAVED PROPERTIES -->
+<div class="saved-section" id="saved-section" style="display:none">
+  <h3>📂 Saved listings — tap to continue</h3>
+  <div class="saved-list" id="saved-list"></div>
+</div>
 
 <div class="setup" id="setup-panel">
   <h2>New listing setup</h2>
@@ -145,7 +171,15 @@ h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:1.5rem;color:#
       <div class="stat"><div class="stat-n" id="st-left">0</div><div class="stat-l">Remaining</div></div>
       <div class="stat"><div class="stat-n" id="st-urgent">0</div><div class="stat-l">This Week</div></div>
     </div>
-    <button class="reset-btn" onclick="resetDeal()">New listing</button>
+    <button class="reset-btn" onclick="resetDeal()">← All listings</button>
+  </div>
+
+  <!-- TOP ACTION BAR -->
+  <div class="top-action-bar">
+    <button class="btn-save-progress" onclick="saveProgress()">💾 Save progress</button>
+    <button class="btn-download" onclick="downloadPDF()">⬇ Download PDF report</button>
+    <button class="btn-download" onclick="downloadCSV()">⬇ Download CSV</button>
+    <span class="save-indicator" id="save-indicator"></span>
   </div>
 
   <div id="current-week-banner" class="current-week-banner"></div>
@@ -427,31 +461,127 @@ const STEPS_DEFAULT = [
 
 let STEPS = JSON.parse(JSON.stringify(STEPS_DEFAULT));
 let listingDate = null;
+let listingAddr = null;
 let state = {};
 let stepStatus = {};
 let currentFilter = 'all';
 let editingItem = null;
+let currentListingKey = null;
+
+// ── Storage helpers ────────────────────────────────────────────────────────────
+const LISTINGS_KEY = 'listingTracker_v1';
+
+function getAllListings(){
+  try{ return JSON.parse(localStorage.getItem(LISTINGS_KEY)) || {}; }catch{ return {}; }
+}
+function saveAllListings(obj){
+  localStorage.setItem(LISTINGS_KEY, JSON.stringify(obj));
+}
+
+function saveProgress(){
+  if(!listingAddr || !listingDate) return;
+  const key = currentListingKey || (listingAddr + '_' + listingDate.toISOString().split('T')[0]);
+  currentListingKey = key;
+  const all = getAllListings();
+  const totalDone = Object.values(stepStatus).filter(v=>v==='done').length;
+  const totalChecked = Object.values(state).filter(Boolean).length;
+  all[key] = {
+    addr: listingAddr,
+    date: listingDate.toISOString(),
+    state: state,
+    stepStatus: stepStatus,
+    STEPS: STEPS,
+    savedAt: new Date().toISOString(),
+    totalDone,
+    totalChecked
+  };
+  saveAllListings(all);
+  const ind = document.getElementById('save-indicator');
+  ind.textContent = '✓ Saved ' + new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  setTimeout(()=>{ ind.textContent=''; }, 3000);
+  renderSavedList();
+}
+
+function loadListing(key){
+  const all = getAllListings();
+  const rec = all[key];
+  if(!rec) return;
+  currentListingKey = key;
+  listingAddr = rec.addr;
+  listingDate = new Date(rec.date);
+  state = rec.state || {};
+  stepStatus = rec.stepStatus || {};
+  STEPS = rec.STEPS ? JSON.parse(JSON.stringify(rec.STEPS)) : JSON.parse(JSON.stringify(STEPS_DEFAULT));
+  document.getElementById('disp-addr').textContent = listingAddr;
+  document.getElementById('disp-sub').textContent = 'Listed: ' + listingDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('setup-panel').style.display = 'none';
+  document.getElementById('saved-section').style.display = 'none';
+  document.getElementById('tracker-panel').style.display = 'block';
+  renderAll();
+}
+
+function deleteListing(key, e){
+  e.stopPropagation();
+  if(!confirm('Delete this saved listing?')) return;
+  const all = getAllListings();
+  delete all[key];
+  saveAllListings(all);
+  renderSavedList();
+}
+
+function renderSavedList(){
+  const all = getAllListings();
+  const keys = Object.keys(all);
+  const section = document.getElementById('saved-section');
+  const list = document.getElementById('saved-list');
+  if(keys.length === 0){ section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = keys.map(k => {
+    const r = all[k];
+    const saved = r.savedAt ? new Date(r.savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+    const allSteps = [];
+    (r.STEPS||STEPS_DEFAULT).forEach(ph=>ph.steps.forEach(s=>allSteps.push(s)));
+    const total = allSteps.length;
+    const done = Object.values(r.stepStatus||{}).filter(v=>v==='done').length;
+    const pct = total > 0 ? Math.round((done/total)*100) : 0;
+    return `<div class="saved-item" onclick="loadListing('${k.replace(/'/g,"\\'")}')">
+      <div>
+        <div class="saved-item-addr">${r.addr}</div>
+        <div class="saved-item-meta">Listed ${new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · Saved ${saved}</div>
+      </div>
+      <div class="saved-progress">${pct}% done</div>
+      <button class="saved-item-del" onclick="deleteListing('${k.replace(/'/g,"\\'")}',event)" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
 
 // ── Deal lifecycle ─────────────────────────────────────────────────────────────
 function startDeal(){
   const addr = document.getElementById('inp-addr').value.trim();
   const dateVal = document.getElementById('inp-date').value;
   if(!addr || !dateVal){alert('Please enter address and listing date');return;}
+  listingAddr = addr;
   listingDate = new Date(dateVal + 'T00:00:00');
+  currentListingKey = addr + '_' + dateVal;
   state = {};
   stepStatus = {};
   STEPS = JSON.parse(JSON.stringify(STEPS_DEFAULT));
   document.getElementById('disp-addr').textContent = addr;
   document.getElementById('disp-sub').textContent = 'Listed: ' + listingDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
   document.getElementById('setup-panel').style.display='none';
+  document.getElementById('saved-section').style.display='none';
   document.getElementById('tracker-panel').style.display='block';
+  saveProgress();
   renderAll();
 }
 
 function resetDeal(){
+  saveProgress();
   document.getElementById('setup-panel').style.display='block';
   document.getElementById('tracker-panel').style.display='none';
   document.getElementById('inp-addr').value='';
+  currentListingKey = null;
+  renderSavedList();
 }
 
 // ── Week/due helpers ──────────────────────────────────────────────────────────
@@ -503,11 +633,13 @@ function isCurrentWeek(step){
 // ── Checkbox ──────────────────────────────────────────────────────────────────
 function toggleItem(stepN, idx){
   state[stepN+'-'+idx] = !state[stepN+'-'+idx];
+  saveProgress();
   renderAll();
 }
 
 function markDone(stepN){
   stepStatus[stepN] = stepStatus[stepN]==='done' ? '' : 'done';
+  saveProgress();
   renderAll();
 }
 
@@ -768,9 +900,91 @@ function escAttr(str){
   return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ── Downloads ─────────────────────────────────────────────────────────────────
+function downloadCSV(){
+  if(!listingAddr) return;
+  const rows = [['Week','Task','Status','Completed']];
+  STEPS.forEach(ph=>{
+    ph.steps.forEach(s=>{
+      const weekDone = stepStatus[s.n]==='done';
+      s.items.forEach((item,i)=>{
+        const checked = state[s.n+'-'+i] ? 'Yes' : 'No';
+        rows.push([ph.phaseLabel, `"${item.replace(/"/g,'""')}"`, weekDone?'Week Done':'In Progress', checked]);
+      });
+    });
+  });
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = listingAddr.replace(/[^a-z0-9]/gi,'_')+'_marketing.csv';
+  a.click();
+}
+
+function downloadPDF(){
+  if(!listingAddr) return;
+  const dom = getDaysOnMarket();
+  const weekNum = getCurrentWeekNum();
+  let allSteps=[];
+  STEPS.forEach(ph=>ph.steps.forEach(s=>allSteps.push({...s,phaseLabel:ph.phaseLabel})));
+  const totalDone = Object.values(stepStatus).filter(v=>v==='done').length;
+  const totalChecked = Object.values(state).filter(Boolean).length;
+  const totalItems = allSteps.reduce((sum,s)=>sum+s.items.length,0);
+
+  const rows = STEPS.map(ph => ph.steps.map(s=>{
+    const weekDone = stepStatus[s.n]==='done';
+    const checkedCount = s.items.filter((_,i)=>state[s.n+'-'+i]).length;
+    const itemRows = s.items.map((item,i)=>{
+      const done = state[s.n+'-'+i];
+      return `<tr style="background:${done?'#f0faf5':'#fff'}">
+        <td style="padding:5px 10px;font-size:12px;color:${done?'#888':'#1a1a1a'};text-decoration:${done?'line-through':'none'}">${item}</td>
+        <td style="padding:5px 10px;text-align:center;font-size:12px;color:${done?'#1D9E75':'#ccc'}">${done?'✓':'○'}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="margin-bottom:14px;page-break-inside:avoid">
+      <div style="background:${weekDone?'#e8f5e9':'#f5f5f5'};border-radius:6px;padding:7px 12px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:600;color:#1a1a1a">${s.title}</span>
+        <span style="font-size:11px;color:${weekDone?'#1D9E75':'#888'}">${weekDone?'✓ Week done':checkedCount+'/'+s.items.length+' tasks'}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden">
+        ${itemRows}
+      </table>
+    </div>`;
+  }).join('')).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Marketing Report — ${listingAddr}</title>
+  <style>
+    body{font-family:-apple-system,sans-serif;color:#1a1a1a;padding:32px 40px;font-size:13px}
+    h1{font-size:20px;font-weight:700;margin-bottom:4px}
+    .sub{font-size:12px;color:#666;margin-bottom:20px}
+    .stats{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+    .stat{background:#f5f5f5;border-radius:8px;padding:10px 18px;text-align:center}
+    .stat-n{font-size:22px;font-weight:700}
+    .stat-l{font-size:10px;color:#888;margin-top:2px}
+    @media print{@page{margin:15mm}}
+  </style></head><body>
+  <h1>📋 Listing Marketing Report</h1>
+  <div class="sub">${listingAddr} · Listed ${listingDate.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · Generated ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-n">${totalDone}</div><div class="stat-l">Weeks Done</div></div>
+    <div class="stat"><div class="stat-n">${totalChecked}/${totalItems}</div><div class="stat-l">Tasks Checked</div></div>
+    <div class="stat"><div class="stat-n">Day ${dom}</div><div class="stat-l">On Market</div></div>
+    <div class="stat"><div class="stat-n">Week ${weekNum}</div><div class="stat-l">Current Week</div></div>
+  </div>
+  ${rows}
+  <script>window.onload=()=>window.print()<\/script>
+  </body></html>`;
+
+  const win = window.open('','_blank');
+  if(!win){ alert('Allow popups to download PDF'); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 const today = new Date();
 document.getElementById('inp-date').value = today.toISOString().split('T')[0];
+renderSavedList();
 </script>
 </body>
 </html>
